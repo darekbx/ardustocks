@@ -1,11 +1,12 @@
 #include <Arduino.h>
-#include <HTTPClient.h>
-#include <rpcWiFi.h>
-#include <TFT_eSPI.h>
 
 #include "config.h"
+#include "stocks_api.h"
+
+#include <TFT_eSPI.h>
 
 TFT_eSPI tft;
+StocksApi stocksApi;
 
 bool firstLoaded = false;
 
@@ -22,28 +23,18 @@ void setup() {
 
   // Wifi
   tft.drawString("Connecting..." , 10, 10);
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  delay(2000);
-  
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+  if (!stocksApi.connect()) {
+    displayWifiError();
+    return;
   }
-  
-  delay(1000);
   
   tft.fillScreen(TFT_BLACK);
   tft.drawString("Ready", 10, 10);
 }
 
-int a = 0;
 void loop() {
-  tft.drawRect(0,70,100,100,TFT_BLACK);
-  tft.drawString("C: " + String(a), 10, 100);
   if (digitalRead(WIO_KEY_C) == LOW) {
-    if (WiFi.status() != WL_CONNECTED) {
+    if (stocksApi.isConnected()) {
       displayWifiError();
       return;
     }
@@ -56,12 +47,18 @@ void loop() {
     loadCurrency(BTC_ENDPOINT, "BTC/PLN", 4, 48, true);
   }
 
-  a ++;
   delay(250);
 }
 
 void loadCurrency(String endpoint, String label, int xPos, int yPos, bool isBtc) {
-    String payload = httpGet(endpoint);
+    String payload = stocksApi.httpGET(endpoint);
+    if (payload == "") {
+      //
+      // TODO
+      //
+      displayError(100, "error");
+      return;
+    }
     int startPos = payload.indexOf("cy~") + 3;
     int endPos = payload.indexOf("~", startPos + 1);
     String value = payload.substring(startPos, endPos);
@@ -107,21 +104,4 @@ void displayFetching() {
     tft.setTextSize(2);
     tft.setTextColor(TFT_GREEN);  
     tft.drawString("Fetching..", 105, 112);
-}
-
-String httpGet(String url) {
-  HTTPClient http;
-  http.begin(url);
-
-  String payload;
-  int httpResponseCode = http.GET();
-  
-  if (httpResponseCode >= 200 && httpResponseCode < 300) {
-    payload = http.getString();
-  } else {
-    displayError(httpResponseCode, http.getString());
-  }
-  
-  http.end();
-  return payload;
 }
