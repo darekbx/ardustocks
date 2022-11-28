@@ -9,8 +9,6 @@ StocksApi stocksApi;
 Storage storage;
 UI ui;
 
-bool firstLoaded = false;
-
 void setup() {
   #if DEBUG
     Serial.begin(115200);
@@ -29,22 +27,6 @@ void setup() {
     return;
   }
   
-  String data1 = storage.loadEntries(PLN_USD_FILE);
-  ui.drawChart("PLN/USD", data1, 5, 5);
-  
-  String data2 = storage.loadEntries(PLN_EUR_FILE);
-  ui.drawChart("PLN/EUR", data2, 160, 5);
-  
-  String data3 = storage.loadEntries(BTC_FILE);
-  ui.drawChart("BTC", data3, 5, 110);
-  
-  String data4 = storage.loadEntries(GOLD_FILE);
-  ui.drawChart("Gold", data4, 160, 110);
-  //return;
-  
-  // TO REMOVE
-  delay(10000);
-  
   // Wifi
   ui.displayMessage("Connecting...");
   if (!stocksApi.connect()) {
@@ -52,7 +34,8 @@ void setup() {
     return;
   }
 
-  ui.ready();
+  refreshData();
+  displayCharts();
 }
 
 void loop() {
@@ -61,26 +44,52 @@ void loop() {
       ui.displayError("Wifi is not connected");
       return;
     }
-    
-    firstLoaded = false;
-    ui.displayMessage("Fetching...");
 
-    String value;
-    
-    value = loadCurrency(PLN_USD_ENDPOINT, PLN_USD_FILE, false);
-    ui.displayValue("USD/PLN", value, 4, 4, false);
-    
-    value = loadCurrency(PLN_EUR_ENDPOINT, PLN_EUR_FILE, false);
-    ui.displayValue("EUR/PLN", value, 4, 26, false);
-    
-    value = loadCurrency(BTC_ENDPOINT, BTC_FILE, true);
-    ui.displayValue("BTC/PLN", value, 4, 48, true);
-    
-    value = loadCurrency(GOLD_ENDPOINT, GOLD_FILE, true);
-    ui.displayValue("Gold", value, 4, 70, true);
+    refreshData();
+    displayCharts();
   }
 
   delay(150);
+}
+
+void refreshData() {
+  ui.displayMessage("Fetching...");
+  loadCurrency(PLN_USD_ENDPOINT, PLN_USD_FILE, false);
+  loadCurrency(PLN_EUR_ENDPOINT, PLN_EUR_FILE, false);
+  loadCurrency(BTC_ENDPOINT, BTC_FILE, true);
+  loadCurrency(GOLD_ENDPOINT, GOLD_FILE, true);
+}
+
+void displayCharts() {
+  ui.clear();
+
+  String data1 = storage.loadEntries(PLN_USD_FILE);
+  int c1 = ui.drawChart("PLN/USD", data1, 5, 5);
+  
+  String data2 = storage.loadEntries(PLN_EUR_FILE);
+  int c2 = ui.drawChart("PLN/EUR", data2, 165, 5);
+  
+  String data3 = storage.loadEntries(BTC_FILE);
+  int c3 = ui.drawChart("BTC", data3, 5, 115);
+  
+  String data4 = storage.loadEntries(GOLD_FILE);
+  int c4 = ui.drawChart("Gold", data4, 165, 115);
+
+  ui.drawStats("Sizes: " + 
+    String(c1) + " (" + lengthToSize(data1) + "), " + 
+    String(c2) + " (" + lengthToSize(data2) + "), " + 
+    String(c3) + " (" + lengthToSize(data3) + "), " + 
+    String(c4) + " (" + lengthToSize(data4) + ")", 
+    5, 224);
+}
+
+String lengthToSize(String data) {
+  int length = data.length();
+  if (length < 1024) {
+    return String(length) + "b";
+  } else {
+    return String(length / 1024) + "Kb";
+  }
 }
 
 String loadCurrency(String endpoint, String file, bool isBtc) {
@@ -99,11 +108,6 @@ String loadCurrency(String endpoint, String file, bool isBtc) {
     }
 
     storage.addEntry(file, value);
-    
-    if (!firstLoaded) {
-      ui.clear();
-      firstLoaded = true;
-    }
     
     return value; 
 }

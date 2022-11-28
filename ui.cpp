@@ -16,7 +16,7 @@ void UI::clear() {
   tft.fillScreen(TFT_BLACK);
 }
 
-void UI::drawChart(String label, String data, double posX, double posY) {
+int UI::drawChart(String label, String data, double posX, double posY) {
   double width = 150;
   double height = 100;
 
@@ -28,7 +28,7 @@ void UI::drawChart(String label, String data, double posX, double posY) {
   double valuesCount = min(width, countChars(data, ','));
 
   if (valuesCount == 0) {
-    return;
+    return 0;
   }
   
   double pX = 0;
@@ -82,14 +82,13 @@ void UI::drawChart(String label, String data, double posX, double posY) {
   tft.setTextColor(TFT_BLACK);
   tft.drawString(label, posX + 5, posY + 5);
   tft.drawString(String(lastValue), posX + 5, posY + height - 10);
+
+  return valuesCount;
 }
 
-void UI::ready() {
-  tft.fillScreen(TFT_BLACK);
-  tft.drawString("Ready!", 10, 10);
-}
-
-void UI::drawString(String text, int x, int y) {
+void UI::drawStats(String text, int x, int y) {
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_DARKGREY);  
   tft.drawString(text, x, y);
 }
 
