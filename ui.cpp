@@ -6,7 +6,7 @@
 
 void UI::init() {
   tft.begin();
-  tft.setRotation(1); // 3 landscape
+  tft.setRotation(3); // 3 landscape
   tft.fillScreen(TFT_BLACK);
   tft.setTextSize(2);
   digitalWrite(LCD_BACKLIGHT, HIGH);
@@ -25,7 +25,9 @@ int UI::drawChart(String label, String data, double posX, double posY) {
   double minValue = 90000.0;
   double maxValue = 0.0;
 
-  double valuesCount = min(width, countChars(data, ','));
+  int count = countChars(data, ',');
+  double valuesCount = min(width, count);
+  int startPoint = max(0, count - width);
 
   if (valuesCount == 0) {
     return 0;
@@ -35,7 +37,7 @@ int UI::drawChart(String label, String data, double posX, double posY) {
   double pY = 0;
   double index = 0;
   
-  for (index = 0; index < valuesCount; index++) {
+  for (index = startPoint; index < count; index++) {
     String chunk = getChunk(data, ',', index);
     double value = chunk.toDouble();
     minValue = min(value, minValue);
@@ -58,17 +60,17 @@ int UI::drawChart(String label, String data, double posX, double posY) {
   double heightRatio = height / (maxValue - minValue);
   double lastValue = 0.0;
 
-  for (index = 0; index < valuesCount; index++) {
+  for (index = startPoint; index < count; index++) {
     String chunk = getChunk(data, ',', index);
     double value = chunk.toDouble();
     
-    if (index == 0) {
+    if (index == startPoint) {
       pX = posX;
       pY = height - ((value - minValue) * heightRatio);
       continue; 
     }
     
-    double x = posX + index * widthRatio;
+    double x = posX + (index - startPoint) * widthRatio;
     double y = height - ((value - minValue) * heightRatio);
 
     tft.drawLine(pX, posY + pY, x, posY + y, TFT_RED);
@@ -83,7 +85,7 @@ int UI::drawChart(String label, String data, double posX, double posY) {
   tft.drawString(label, posX + 5, posY + 5);
   tft.drawString(String(lastValue), posX + 5, posY + height - 10);
 
-  return valuesCount;
+  return count;
 }
 
 void UI::drawStats(String text, int x, int y) {
